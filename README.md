@@ -29,13 +29,38 @@ ishonchli ishlaydi:
 
 ## Ishga tushirish
 
-Babel `.jsx` fayllarni `fetch` orqali yuklaydi, shuning uchun loyihani HTTP
-orqali ochish kerak (`file://` ishlamaydi):
+Tavsiya etilgan yo'l — Node server (statik fayllar + real AI tahlil endpointi):
 
 ```bash
-python3 -m http.server 8000
+npm install
+npm start
 # brauzerda oching: http://localhost:8000/
 ```
+
+> Faqat dizayn (backendsiz) ko'rmoqchi bo'lsangiz, istalgan statik server ham
+> yetarli (`python3 -m http.server 8000`) — bu holda AI tahlil avtomatik
+> ravishda namunaviy (mock) ma'lumotga qaytadi.
+
+## Real AI tahlil (Claude)
+
+`AnalyzingScreen` yuklangan rasmni va anketa javoblarini `POST /api/analyze`
+orqali serverga yuboradi. Server **Claude vision** (`claude-opus-4-8`) yordamida
+real stil profili, 3 ta obraz va 4 ta mahsulot tavsiyasini qaytaradi — UI shu
+ma'lumotni o'sha ko'rinishda chizadi.
+
+Real AI'ni yoqish uchun API kalitini o'rnating va serverni ishga tushiring:
+
+```bash
+export ANTHROPIC_API_KEY="sk-ant-..."
+npm start
+```
+
+- **Kalit yo'q bo'lsa** — server `{ source: "mock" }` qaytaradi va ilova
+  `data.jsx` ichidagi namunaviy ma'lumotdan foydalanadi (hozircha shu holatda
+  ishlaydi). Kalit qo'shilishi bilan **hech qanday kod o'zgartirmasdan** real
+  AI'ga o'tadi.
+- Modelni o'zgartirish: `MENGA_MODEL` muhit o'zgaruvchisi.
+- Tekshirish: `GET /api/config` → `{ "aiEnabled": true/false }`.
 
 ## Fayllar tuzilishi
 
@@ -53,7 +78,8 @@ python3 -m http.server 8000
 | `vendor/` | Self-hosted React/ReactDOM/Babel |
 | `fonts/` | Self-hosted shriftlar (`.woff2`) + `fonts.css` |
 | `favicon.svg` | Brend belgisi (M) |
+| `server.js` | Node server + `POST /api/analyze` (Claude vision) |
 
-> Eslatma: bu interaktiv dizayn prototipi. Orqa tomonda haqiqiy backend, AI
-> tahlili va to'lov integratsiyasi yo'q — barcha ma'lumotlar `data.jsx`
-> ichidagi mock qiymatlar.
+> Eslatma: AI **tahlil** qismi real (Claude vision). Mahsulot katalogi, try-on
+> rasm generatsiyasi va to'lov hali namunaviy — ularni real qilish uchun mos
+> integratsiyalar (do'kon API'lari, rasm modeli, to'lov shartnomalari) kerak.

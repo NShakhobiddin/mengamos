@@ -229,6 +229,14 @@
       return ['shape', 'radius', 'mask', 'fit', 'position', 'placeholder', 'src', 'id'];
     }
 
+    // Current user-supplied image as a data: URL (or null). Lets the app read
+    // the dropped photo to send it for AI analysis.
+    get dataUrl() {
+      if (this._userUrl) return this._userUrl;
+      const stored = this.id ? getSlot(this.id) : this._local;
+      return (stored && stored.u) || null;
+    }
+
     constructor() {
       super();
       const root = this.attachShadow({ mode: 'open' });

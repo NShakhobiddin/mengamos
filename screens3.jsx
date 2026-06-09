@@ -2,16 +2,56 @@
 const { useState, useEffect, useRef } = React;
 
 /* ============ ANALYZING ============ */
-function AnalyzingScreen({ go }) {
+function AnalyzingScreen({ go, app }) {
   const steps = window.ANALYSIS_STEPS;
   const [active, setActive] = useState(0);
   useEffect(() => {
+    let done = false;
     const timers = [];
+    const startedAt = Date.now();
+    const minMs = steps.length * 900 + 600;
+    // Animate the steps while the (possibly real) AI analysis runs.
     for (let i = 1; i <= steps.length; i++) {
-      timers.push(setTimeout(() => setActive(i), i * 900));
+      timers.push(setTimeout(() => !done && setActive(Math.min(i, steps.length)), i * 900));
     }
-    timers.push(setTimeout(() => go("summary"), steps.length * 900 + 700));
-    return () => timers.forEach(clearTimeout);
+    const finish = () => { if (!done) { done = true; go("summary"); } };
+
+    // Overwrite the sample catalogs with real AI results (same shapes).
+    const apply = (res) => {
+      if (res.profile) window.PROFILE = Object.assign({}, window.PROFILE, res.profile);
+      if (Array.isArray(res.outfits) && res.outfits.length) {
+        window.OUTFITS = res.outfits.map((o, i) => ({ ...o, id: o.id || "o" + (i + 1) }));
+      }
+      if (Array.isArray(res.products) && res.products.length) {
+        window.PRODUCTS = res.products.map((p, i) => ({ ...p, id: p.id || "p" + (i + 1) }));
+      }
+    };
+
+    const slot = document.querySelector("image-slot#mm-photo");
+    const payload = {
+      image: (slot && slot.dataUrl) || null,
+      survey: app.survey || {},
+      occasion: app.occasion, customOccasion: app.customOccasion,
+      style: app.style, budget: app.budget, customBudget: app.customBudget,
+      extras: app.extras || {},
+    };
+
+    fetch("/api/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    })
+      .then((r) => r.json())
+      .catch(() => ({ source: "mock" }))
+      .then((res) => {
+        if (done) return;
+        if (res && res.source === "ai") { try { apply(res); } catch (e) {} }
+        timers.push(setTimeout(finish, Math.max(0, minMs - (Date.now() - startedAt))));
+      });
+
+    // Hard cap so a slow/hung request never traps the user on this screen.
+    timers.push(setTimeout(finish, 45000));
+    return () => { done = true; timers.forEach(clearTimeout); };
   }, []);
   const pct = active / steps.length;
   return (
