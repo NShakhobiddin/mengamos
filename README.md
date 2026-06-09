@@ -17,6 +17,16 @@ o'z rasmida try-on → mahsulotlar → premium → to'lov → PDF hisobot.
 - `<image-slot>` — foydalanuvchi rasmi uchun drag-drop slot (upload va try-on
   ekranlarida).
 
+### To'liq mustaqil (offline)
+
+Hech qanday CDN'ga bog'liq emas — barcha kutubxonalar va shriftlar loyiha
+ichida joylashgan, shuning uchun prototip internetsiz, istalgan muhitda
+ishonchli ishlaydi:
+
+- `vendor/` — React, ReactDOM, Babel Standalone (local nusxalar)
+- `fonts/` — Cormorant Garamond va Hanken Grotesk `.woff2` fayllari +
+  `fonts.css`
+
 ## Ishga tushirish
 
 Babel `.jsx` fayllarni `fetch` orqali yuklaydi, shuning uchun loyihani HTTP
@@ -40,6 +50,9 @@ python3 -m http.server 8000
 | `frames/ios-frame.jsx` | iPhone ramkasi komponenti |
 | `tweaks-panel.jsx` | Vizual yo'nalish/uslub sozlamalari paneli |
 | `image-slot.js` | Drag-drop rasm sloti (custom element) |
+| `vendor/` | Self-hosted React/ReactDOM/Babel |
+| `fonts/` | Self-hosted shriftlar (`.woff2`) + `fonts.css` |
+| `favicon.svg` | Brend belgisi (M) |
 
 > Eslatma: bu interaktiv dizayn prototipi. Orqa tomonda haqiqiy backend, AI
 > tahlili va to'lov integratsiyasi yo'q — barcha ma'lumotlar `data.jsx`
