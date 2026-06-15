@@ -112,19 +112,22 @@ CLICK_MERCHANT_ID=...
 > tasdiqlash uchun ishlab chiqarishda Payme/Click **callback (Merchant API)**
 > endpointini ham ulash kerak (premium statusni webhook orqali yoqish).
 
-## Try-on — virtual kiyintirish
+## Try-on — rasmingizda generatsiya
 
-`Rasmingizda` ekrani `POST /api/tryon` orqali yuklangan rasmga obraz kiyimini
-kiygizadi (Replicate'dagi virtual try-on modeli, default **IDM-VTON**). Kiyim
-rasmi sifatida Pinduoduo mahsulot rasmi ishlatiladi.
+`Rasmingizda` ekrani `POST /api/tryon` orqali yuklangan rasmingizga AI obrazini
+generatsiya qiladi: **rasm + obraz tavsifi (matn) → sizni o'sha kiyimda**.
+Replicate'dagi rasm modeli orqali (default **flux-kontext-pro**).
 
 ```bash
-REPLICATE_API_TOKEN=...
-# REPLICATE_TRYON_MODEL=cuuupid/idm-vton
+REPLICATE_API_TOKEN=...   # FAQAT shu kerak — Pinduoduo SHART EMAS
 ```
 
-Token yo'q bo'lsa — ekran oddiy rasmni ko'rsatadi (mavjud holat). To'liq real
-try-on uchun **rasm + Pinduoduo kiyim rasmi + Replicate token** kerak.
+- Token yo'q bo'lsa — ekran oddiy rasmni ko'rsatadi va aniq izoh chiqaradi.
+- Ixtiyoriy: `REPLICATE_VTON_MODEL=cuuupid/idm-vton` qo'shsangiz va Pinduoduo
+  kiyim rasmi bo'lsa, IDM-VTON (kiyim-almashtirish) rejimi ishlaydi.
+
+> ⚠️ Bu funksiya uchun **rasmingiz yuklangan bo'lishi** kerak (boshida "Rasm
+> bilan" yo'lini tanlang, "Rasmsiz" emas).
 
 ## Deploy (Render / Railway)
 

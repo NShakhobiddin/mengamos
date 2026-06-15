@@ -39,9 +39,8 @@ function AnalyzingScreen({ go, app }) {
       }
     };
 
-    const slot = document.querySelector("image-slot#mm-photo");
     const payload = {
-      image: (slot && slot.dataUrl) || null,
+      image: (window.MM_getPhoto && window.MM_getPhoto("mm-photo")) || null,
       survey: app.survey || {},
       occasion: app.occasion, customOccasion: app.customOccasion,
       style: app.style, budget: app.budget, customBudget: app.customBudget,
@@ -242,22 +241,35 @@ function TryOnScreen({ go, back, app }) {
   const o = window.OUTFITS.find((x) => x.id === app.outfit) || window.OUTFITS[0];
   const [gen, setGen] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [hint, setHint] = useState(null);
   useEffect(() => {
-    const slot = document.querySelector("image-slot#mm-photo");
-    const human = slot && slot.dataUrl;
-    const garment = o.image || ((o.items || []).find((it) => it.image) || {}).image;
-    if (!human || !garment) return; // rasm yoki kiyim rasmi yo'q — oddiy ko'rinish
     let live = true;
-    setBusy(true);
-    fetch("/api/tryon", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ human, garment }),
-    })
-      .then((r) => r.json())
-      .catch(() => ({}))
-      .then((r) => { if (live) { if (r && r.url) setGen(r.url); setBusy(false); } });
+    const human = (window.MM_getPhoto && window.MM_getPhoto("mm-photo")) || null;
+    const garment = o.image || ((o.items || []).find((it) => it.image) || {}).image;
+    const prompt =
+      "Generate a realistic, full-body fashion photo of the SAME person from the input image — keep their face, body shape and pose unchanged — now wearing this outfit: " +
+      (o.items || []).map((it) => `${it.color} ${it.name}`).join(", ") +
+      ". Clean light studio background, natural lighting, photorealistic, high detail.";
+
+    fetch("/api/config").then((r) => r.json()).then((c) => {
+      if (!live) return;
+      if (!c.tryonEnabled) return setHint("demo");   // REPLICATE_API_TOKEN yo'q
+      if (!human) return setHint("nophoto");          // rasm yuklanmagan
+      setBusy(true);
+      fetch("/api/tryon", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ human, garment, prompt }),
+      })
+        .then((r) => r.json()).catch(() => ({}))
+        .then((r) => { if (!live) return; if (r && r.url) setGen(r.url); else setHint("failed"); setBusy(false); });
+    }).catch(() => { if (live) setHint("demo"); });
     return () => { live = false; };
   }, []);
+  const hintText = {
+    demo: "Bu demo ko'rinish. Rasmingizda haqiqiy generatsiya uchun REPLICATE_API_TOKEN o'rnating (README).",
+    nophoto: "Rasmingizda generatsiya uchun avval boshida rasmingizni yuklang.",
+    failed: "Generatsiya hozir bajarilmadi. Birozdan keyin qayta urinib ko'ring.",
+  };
   return (
     <div className="mm-screen">
       <TopBar onBack={back} step="Rasmingizda" />
@@ -287,6 +299,13 @@ function TryOnScreen({ go, back, app }) {
             <button className="mm-iconbtn" style={{ background: "rgba(255,255,255,.85)", backdropFilter: "blur(6px)", border: "none" }}><Icon name="download" size={18} /></button>
           </div>
         </div>
+
+        {hint && !gen && !busy && (
+          <div className="neutral-block" style={{ padding: 13, marginTop: 12, display: "flex", gap: 9, alignItems: "flex-start" }}>
+            <span style={{ color: "var(--accent)", marginTop: 1 }}><Icon name="info" size={16} /></span>
+            <span className="small" style={{ color: "var(--ink-2)" }}>{hintText[hint]}</span>
+          </div>
+        )}
 
         <div className="row gap8" style={{ marginTop: 14 }}>
           {o.items.map((it, i) => (

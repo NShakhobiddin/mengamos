@@ -211,7 +211,8 @@ app.post("/api/pay", (req, res) => {
 app.post("/api/tryon", async (req, res) => {
   if (!tryon.enabled()) return res.json({ url: null, reason: "disabled" });
   try {
-    const url = await tryon.generate({ human: req.body && req.body.human, garment: req.body && req.body.garment });
+    const b = req.body || {};
+    const url = await tryon.generate({ human: b.human, garment: b.garment, prompt: b.prompt });
     res.json({ url: url || null });
   } catch (err) {
     console.error("[tryon] error:", err && err.message);

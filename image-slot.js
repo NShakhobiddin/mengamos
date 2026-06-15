@@ -138,6 +138,14 @@
     if (loaded) save(); else load().then(save);
   }
 
+  // Expose the stored image (data URL) so the app can read an uploaded photo
+  // from ANY screen — even one that doesn't mount an <image-slot> (e.g. the
+  // analyzing screen). Without this the photo only reaches screens that render
+  // the slot, so the AI analysis would miss it.
+  if (typeof window !== 'undefined') {
+    window.MM_getPhoto = function (id) { const v = getSlot(id); return (v && v.u) || null; };
+  }
+
   // ── Image downscale ─────────────────────────────────────────────────────
   // Encode through a canvas so the sidecar carries resized bytes, not the
   // raw upload. Longest side is capped at 2× the slot's rendered width
