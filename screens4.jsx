@@ -65,6 +65,20 @@ function PaymentScreen({ go, back, app, setApp }) {
   const method = app.payMethod || "payme";
   const plan = window.PLANS.find((p) => p.id === (app.plan || "month"));
   const [err, setErr] = React.useState(false);
+  const [paying, setPaying] = React.useState(false);
+  const pay = async () => {
+    if (paying) return;
+    setPaying(true);
+    try {
+      const r = await fetch("/api/pay", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ method, amount: plan.price, plan: plan.id }),
+      }).then((x) => x.json());
+      if (r && r.url) { window.location.href = r.url; return; } // real Payme/Click sahifasi
+    } catch (e) {}
+    setApp({ premium: true }); go("success"); // merchant sozlanmagan — demo
+    setPaying(false);
+  };
   return (
     <div className="mm-screen">
       <TopBar onBack={back} step="To'lov" />
@@ -102,7 +116,7 @@ function PaymentScreen({ go, back, app, setApp }) {
         <div style={{ height: 8 }} />
       </div>
       <div className="mm-footer">
-        <Btn kind="primary" icon="lock" onClick={() => { setApp({ premium: true }); go("success"); }}>{plan.price} so'm to'lash</Btn>
+        <Btn kind="primary" icon="lock" disabled={paying} onClick={pay}>{paying ? "Yo'naltirilmoqda…" : plan.price + " so'm to'lash"}</Btn>
         <Btn kind="ghost" onClick={() => setErr((v) => !v)} style={{ marginTop: 0, fontSize: 13 }}>{err ? "Xatolikni yashirish" : "Xatolik holatini ko'rish"}</Btn>
       </div>
     </div>

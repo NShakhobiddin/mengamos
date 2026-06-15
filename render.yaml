@@ -1,0 +1,27 @@
+# Render.com blueprint — "New + → Blueprint" tanlab shu repони ulang.
+services:
+  - type: web
+    name: menga-mos
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: ANTHROPIC_API_KEY      # AI tahlil (Claude vision)
+        sync: false
+      - key: PDD_CLIENT_ID          # Pinduoduo 多多进宝
+        sync: false
+      - key: PDD_CLIENT_SECRET
+        sync: false
+      - key: PDD_PID
+        sync: false
+      - key: PDD_CNY_TO_UZS
+        value: "1750"
+      - key: PAYME_MERCHANT_ID      # To'lov — Payme
+        sync: false
+      - key: CLICK_SERVICE_ID       # To'lov — Click
+        sync: false
+      - key: CLICK_MERCHANT_ID
+        sync: false
+      - key: REPLICATE_API_TOKEN    # Try-on (virtual try-on modeli)
+        sync: false

@@ -96,6 +96,48 @@ Tekshirish: `GET /api/config` → `{ "pddEnabled": true }`.
 > shlyuzi bo'yicha yozdim; u tasdiqlangan kalit bilan jonli ishlaydi. Har bir
 > qadam fail-safe — Pinduoduo javob bermasa, karta ikonali holatga qaytadi.
 
+## To'lov — Payme / Click
+
+To'lov tugmasi `POST /api/pay` orqali real **Payme** yoki **Click** checkout
+havolasini yaratadi va foydalanuvchini to'lov sahifasiga yo'naltiradi.
+Merchant ma'lumotlari bo'lmasa — demo (success) ekrani ko'rsatiladi.
+
+```bash
+PAYME_MERCHANT_ID=...     # Payme kassa ID
+CLICK_SERVICE_ID=...      # Click
+CLICK_MERCHANT_ID=...
+```
+
+> Eslatma: bu to'lovni **boshlash** (checkout link) qismi — real. To'lovni
+> tasdiqlash uchun ishlab chiqarishda Payme/Click **callback (Merchant API)**
+> endpointini ham ulash kerak (premium statusni webhook orqali yoqish).
+
+## Try-on — virtual kiyintirish
+
+`Rasmingizda` ekrani `POST /api/tryon` orqali yuklangan rasmga obraz kiyimini
+kiygizadi (Replicate'dagi virtual try-on modeli, default **IDM-VTON**). Kiyim
+rasmi sifatida Pinduoduo mahsulot rasmi ishlatiladi.
+
+```bash
+REPLICATE_API_TOKEN=...
+# REPLICATE_TRYON_MODEL=cuuupid/idm-vton
+```
+
+Token yo'q bo'lsa — ekran oddiy rasmni ko'rsatadi (mavjud holat). To'liq real
+try-on uchun **rasm + Pinduoduo kiyim rasmi + Replicate token** kerak.
+
+## Deploy (Render / Railway)
+
+```bash
+# 1) GitHub'ga push qiling
+# 2) Render.com → New + → Blueprint → shu repo (render.yaml avtomatik o'qiladi)
+#    yoki Railway → Deploy from repo (Procfile: web: node server.js)
+# 3) Dashboard'da kerakli kalitlarni Environment sifatida qo'shing
+```
+
+Barcha kalitlar `.env.example` da ro'yxatlangan. Hech biri bo'lmasa ham ilova
+ishlaydi — har bir kalit mos funksiyani "real" qiladi.
+
 ## Fayllar tuzilishi
 
 | Fayl | Vazifasi |
@@ -112,9 +154,12 @@ Tekshirish: `GET /api/config` → `{ "pddEnabled": true }`.
 | `vendor/` | Self-hosted React/ReactDOM/Babel |
 | `fonts/` | Self-hosted shriftlar (`.woff2`) + `fonts.css` |
 | `favicon.svg` | Brend belgisi (M) |
-| `server.js` | Node server + `POST /api/analyze` (Claude vision + Pinduoduo) |
+| `server.js` | Node server + API (analyze · pay · tryon · config) |
 | `pdd.js` | Pinduoduo 多多进宝 mijozi (qidiruv, narx→so'm, havola) |
+| `pay.js` | Payme / Click checkout havolalari |
+| `tryon.js` | Virtual try-on (Replicate) |
+| `render.yaml` · `Procfile` · `.env.example` | Deploy konfiguratsiyasi |
 
-> Eslatma: AI **tahlil** (Claude vision) va **mahsulot rasmlari** (Pinduoduo)
-> real. Try-on rasm generatsiyasi va to'lov hali namunaviy — ularni real qilish
-> uchun rasm modeli va to'lov shartnomalari kerak.
+> Eslatma: AI **tahlil**, **mahsulot rasmlari**, **try-on** va **to'lov
+> boshlash** — barchasi real integratsiyalar, mos kalit qo'shilganda ishlaydi.
+> Faqat to'lov **tasdig'i** (callback) ishlab chiqarishda qo'shilishi kerak.

@@ -240,6 +240,24 @@ function OutfitsScreen({ go, back, setApp }) {
 /* ============ TRY-ON ============ */
 function TryOnScreen({ go, back, app }) {
   const o = window.OUTFITS.find((x) => x.id === app.outfit) || window.OUTFITS[0];
+  const [gen, setGen] = useState(null);
+  const [busy, setBusy] = useState(false);
+  useEffect(() => {
+    const slot = document.querySelector("image-slot#mm-photo");
+    const human = slot && slot.dataUrl;
+    const garment = o.image || ((o.items || []).find((it) => it.image) || {}).image;
+    if (!human || !garment) return; // rasm yoki kiyim rasmi yo'q — oddiy ko'rinish
+    let live = true;
+    setBusy(true);
+    fetch("/api/tryon", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ human, garment }),
+    })
+      .then((r) => r.json())
+      .catch(() => ({}))
+      .then((r) => { if (live) { if (r && r.url) setGen(r.url); setBusy(false); } });
+    return () => { live = false; };
+  }, []);
   return (
     <div className="mm-screen">
       <TopBar onBack={back} step="Rasmingizda" />
@@ -248,9 +266,19 @@ function TryOnScreen({ go, back, app }) {
         <p className="body" style={{ marginTop: 6 }}>Obraz sizning rasmingizda — yuz va pozangiz saqlanadi.</p>
 
         <div style={{ position: "relative", marginTop: 16, borderRadius: 20, overflow: "hidden" }}>
-          <image-slot id="mm-photo" shape="rounded" radius="20"
-            placeholder="Rasmingizni yuklang — try-on shu yerda"
-            style={{ width: "100%", aspectRatio: "3 / 4", display: "block" }}></image-slot>
+          {gen ? (
+            <img src={gen} alt="" style={{ width: "100%", aspectRatio: "3 / 4", objectFit: "cover", display: "block" }} />
+          ) : (
+            <image-slot id="mm-photo" shape="rounded" radius="20"
+              placeholder="Rasmingizni yuklang — try-on shu yerda"
+              style={{ width: "100%", aspectRatio: "3 / 4", display: "block" }}></image-slot>
+          )}
+          {busy && (
+            <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", gap: 12, alignItems: "center", justifyContent: "center", background: "rgba(255,255,255,.55)", backdropFilter: "blur(3px)" }}>
+              <span style={{ width: 36, height: 36, borderRadius: 999, border: "3px solid var(--accent)", borderTopColor: "transparent", animation: "spin .8s linear infinite" }} />
+              <span className="small" style={{ fontWeight: 600 }}>Rasmingizda kiyilmoqda…</span>
+            </div>
+          )}
           <span className="tag" style={{ position: "absolute", top: 12, left: 12, background: "rgba(0,0,0,.55)", color: "#fff", backdropFilter: "blur(6px)" }}>
             <Icon name="sparkle" size={13} /> AI try-on
           </span>

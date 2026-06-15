@@ -24,6 +24,8 @@ try {
 const express = require("express");
 const Anthropic = require("@anthropic-ai/sdk");
 const pdd = require("./pdd");
+const pay = require("./pay");
+const tryon = require("./tryon");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -185,7 +187,36 @@ function imageBlockFromDataUrl(dataUrl) {
 }
 
 app.get("/api/config", (req, res) => {
-  res.json({ aiEnabled: HAS_KEY, model: HAS_KEY ? MODEL : null, pddEnabled: pdd.enabled() });
+  res.json({
+    aiEnabled: HAS_KEY,
+    model: HAS_KEY ? MODEL : null,
+    pddEnabled: pdd.enabled(),
+    payEnabled: pay.enabled(),
+    tryonEnabled: tryon.enabled(),
+  });
+});
+
+// Create a real Payme/Click checkout link (or signal demo mode).
+app.post("/api/pay", (req, res) => {
+  const body = req.body || {};
+  const method = body.method || "payme";
+  const amountSom = pay.digits(body.amount);
+  const orderId = body.orderId || "mm-" + Date.now();
+  const base = process.env.APP_BASE_URL || req.protocol + "://" + req.get("host");
+  const url = pay.build(method, amountSom, orderId, base + "/?paid=" + orderId);
+  res.json({ url: url || null, orderId, mock: !url });
+});
+
+// Virtual try-on: put the outfit garment on the user's uploaded photo.
+app.post("/api/tryon", async (req, res) => {
+  if (!tryon.enabled()) return res.json({ url: null, reason: "disabled" });
+  try {
+    const url = await tryon.generate({ human: req.body && req.body.human, garment: req.body && req.body.garment });
+    res.json({ url: url || null });
+  } catch (err) {
+    console.error("[tryon] error:", err && err.message);
+    res.json({ url: null, error: String(err && err.message) });
+  }
 });
 
 app.post("/api/analyze", async (req, res) => {
@@ -235,7 +266,9 @@ app.get("/favicon.ico", (req, res) => res.redirect(301, "/favicon.svg"));
 app.use(express.static(__dirname, { extensions: ["html"] }));
 
 app.listen(PORT, () => {
-  const ai = HAS_KEY ? "real AI: " + MODEL : "mock (ANTHROPIC_API_KEY yo'q)";
-  const shop = pdd.enabled() ? "Pinduoduo real rasmlar" : "Pinduoduo o'chiq (PDD_CLIENT_ID yo'q)";
-  console.log(`Menga Mos [${ai}] [${shop}] → http://localhost:${PORT}/`);
+  const on = (b) => (b ? "✓" : "✗");
+  console.log(
+    `Menga Mos → http://localhost:${PORT}/  ` +
+    `[AI ${on(HAS_KEY)}] [Pinduoduo ${on(pdd.enabled())}] [To'lov ${on(pay.enabled())}] [Try-on ${on(tryon.enabled())}]`
+  );
 });
