@@ -13,6 +13,24 @@ function Thumb({ src, glyph, size }) {
   return <Garment name={glyph} size={size} />;
 }
 
+/* Re-encode any data URL to JPEG — image models reject some webp inputs. */
+function toJpeg(dataUrl) {
+  return new Promise((res) => {
+    if (!dataUrl) return res(dataUrl);
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const c = document.createElement("canvas");
+        c.width = img.naturalWidth; c.height = img.naturalHeight;
+        c.getContext("2d").drawImage(img, 0, 0);
+        res(c.toDataURL("image/jpeg", 0.92));
+      } catch (e) { res(dataUrl); }
+    };
+    img.onerror = () => res(dataUrl);
+    img.src = dataUrl;
+  });
+}
+
 /* ============ ANALYZING ============ */
 function AnalyzingScreen({ go, app }) {
   const steps = window.ANALYSIS_STEPS;
@@ -251,14 +269,15 @@ function TryOnScreen({ go, back, app }) {
       (o.items || []).map((it) => `${it.color} ${it.name}`).join(", ") +
       ". Clean light studio background, natural lighting, photorealistic, high detail.";
 
-    fetch("/api/config").then((r) => r.json()).then((c) => {
+    fetch("/api/config").then((r) => r.json()).then(async (c) => {
       if (!live) return;
       if (!c.tryonEnabled) return setHint("demo");   // REPLICATE_API_TOKEN yo'q
       if (!human) return setHint("nophoto");          // rasm yuklanmagan
       setBusy(true);
+      const humanJpeg = await toJpeg(human);          // webp → jpeg (model uchun)
       fetch("/api/tryon", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ human, garment, prompt }),
+        body: JSON.stringify({ human: humanJpeg, garment, prompt }),
       })
         .then((r) => r.json()).catch(() => ({}))
         .then((r) => { if (!live) return; if (r && r.url) setGen(r.url); else setHint("failed"); setBusy(false); });
