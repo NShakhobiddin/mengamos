@@ -1,6 +1,18 @@
 /* MENGA MOS — screens 3: Analyzing · Summary · Outfits · TryOn · Products */
 const { useState, useEffect, useRef } = React;
 
+/* Real product photo (Pinduoduo) with a graceful glyph fallback. */
+function Thumb({ src, glyph, size }) {
+  const [broken, setBroken] = useState(false);
+  if (src && !broken) {
+    return (
+      <img src={src} alt="" loading="lazy" onError={() => setBroken(true)}
+        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+    );
+  }
+  return <Garment name={glyph} size={size} />;
+}
+
 /* ============ ANALYZING ============ */
 function AnalyzingScreen({ go, app }) {
   const steps = window.ANALYSIS_STEPS;
@@ -163,8 +175,8 @@ function OutfitCard({ o, go, setApp }) {
   return (
     <div className="card" style={{ overflow: "hidden", marginBottom: 16 }}>
       <div style={{ position: "relative" }}>
-        <div className="garment" style={{ aspectRatio: "5 / 4", borderRadius: 0 }}>
-          <Garment name={o.glyph} size="40%" />
+        <div className="garment" style={{ aspectRatio: "5 / 4", borderRadius: 0, overflow: "hidden" }}>
+          <Thumb src={o.image} glyph={o.glyph} size="40%" />
         </div>
         {o.accent && <span className="tag gold" style={{ position: "absolute", top: 12, right: 12 }}><Icon name="crown" size={13} /> Tanlangan</span>}
       </div>
@@ -173,8 +185,8 @@ function OutfitCard({ o, go, setApp }) {
         <div className="small" style={{ fontWeight: 600, marginTop: 2, marginBottom: 12 }}>{o.occasion}</div>
         <div className="row gap8" style={{ marginBottom: 12 }}>
           {o.items.map((it, i) => (
-            <div key={i} className="garment" style={{ width: 52, height: 52, borderRadius: 11, flexShrink: 0 }}>
-              <Garment name={it.glyph} size="60%" />
+            <div key={i} className="garment" style={{ width: 52, height: 52, borderRadius: 11, flexShrink: 0, overflow: "hidden" }}>
+              <Thumb src={it.image} glyph={it.glyph} size="60%" />
             </div>
           ))}
         </div>
@@ -251,7 +263,7 @@ function TryOnScreen({ go, back, app }) {
         <div className="row gap8" style={{ marginTop: 14 }}>
           {o.items.map((it, i) => (
             <div key={i} className="col center-x" style={{ gap: 5, flex: 1 }}>
-              <div className="garment" style={{ width: "100%", aspectRatio: "1", borderRadius: 12 }}><Garment name={it.glyph} size="58%" /></div>
+              <div className="garment" style={{ width: "100%", aspectRatio: "1", borderRadius: 12, overflow: "hidden" }}><Thumb src={it.image} glyph={it.glyph} size="58%" /></div>
               <span style={{ fontSize: 10.5, color: "var(--ink-3)", fontWeight: 600, textAlign: "center" }}>{it.type}</span>
             </div>
           ))}
@@ -279,7 +291,7 @@ function TryOnScreen({ go, back, app }) {
 function ProductCard({ p }) {
   return (
     <div className="card" style={{ padding: 12, marginBottom: 12, display: "flex", gap: 12 }}>
-      <div className="garment" style={{ width: 84, height: 104, borderRadius: 12, flexShrink: 0 }}><Garment name={p.glyph} size="56%" /></div>
+      <div className="garment" style={{ width: 84, height: 104, borderRadius: 12, flexShrink: 0, overflow: "hidden" }}><Thumb src={p.image} glyph={p.glyph} size="56%" /></div>
       <div style={{ flex: 1, minWidth: 0 }}>
         <div className="row between" style={{ alignItems: "flex-start", gap: 8 }}>
           <div style={{ minWidth: 0 }}>
@@ -298,9 +310,16 @@ function ProductCard({ p }) {
             <span style={{ fontSize: 15, fontWeight: 700 }}>{p.price}</span>
             <Stars value={p.rating} />
           </div>
-          <button className="btn btn-sm" style={{ background: "var(--accent)", color: "#fff", height: 38, padding: "0 14px" }}>
-            Do'kon <Icon name="external" size={15} />
-          </button>
+          {p.url ? (
+            <a className="btn btn-sm" href={p.url} target="_blank" rel="noopener noreferrer"
+              style={{ background: "var(--accent)", color: "#fff", height: 38, padding: "0 14px", display: "inline-flex", alignItems: "center", gap: 4, textDecoration: "none" }}>
+              Do'kon <Icon name="external" size={15} />
+            </a>
+          ) : (
+            <button className="btn btn-sm" style={{ background: "var(--accent)", color: "#fff", height: 38, padding: "0 14px" }}>
+              Do'kon <Icon name="external" size={15} />
+            </button>
+          )}
         </div>
         <div className="small" style={{ marginTop: 7 }}><Icon name="plane" size={12} style={{ verticalAlign: "-2px", marginRight: 3 }} />Yetkazib berish: {p.delivery}</div>
       </div>

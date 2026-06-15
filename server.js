@@ -11,8 +11,19 @@
  * the same flow returns real AI results — no frontend change required.
  */
 const path = require("path");
+const fs = require("fs");
+
+// Minimal .env loader (no dependency) so keys can live in a gitignored .env.
+try {
+  for (const line of fs.readFileSync(path.join(__dirname, ".env"), "utf8").split("\n")) {
+    const m = /^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(line);
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, "");
+  }
+} catch {}
+
 const express = require("express");
 const Anthropic = require("@anthropic-ai/sdk");
+const pdd = require("./pdd");
 
 const app = express();
 const PORT = process.env.PORT || 8000;
@@ -83,8 +94,9 @@ const ANALYSIS_SCHEMA = {
                 glyph: { type: "string", enum: GLYPHS },
                 name: { type: "string" },
                 color: { type: "string" },
+                query: { type: "string", description: "Pinduoduo qidiruvi uchun qisqa XITOYCHA kalit so'z (rang + tur + stil), masalan '白色 oversize 衬衫'" },
               },
-              required: ["type", "glyph", "name", "color"],
+              required: ["type", "glyph", "name", "color", "query"],
             },
           },
         },
@@ -109,8 +121,9 @@ const ANALYSIS_SCHEMA = {
           rating: { type: "number", description: "4.0 dan 4.9 gacha" },
           match: { type: "integer", description: "O'xshashlik balli 80-97" },
           delivery: { type: "string", description: "Masalan '5-7 kun'" },
+          query: { type: "string", description: "Pinduoduo qidiruvi uchun qisqa XITOYCHA kalit so'z (rang + tur + stil), masalan '米色 chino 长裤'" },
         },
-        required: ["id", "glyph", "title", "brand", "store", "price", "color", "size", "rating", "match", "delivery"],
+        required: ["id", "glyph", "title", "brand", "store", "price", "color", "size", "rating", "match", "delivery", "query"],
       },
     },
   },
@@ -130,6 +143,7 @@ Qoidalar:
 - Ranglar uchun aniq hex kodlar ber.
 - Narxlar foydalanuvchi byudjetiga mos bo'lsin (so'mda).
 - "glyph" maydoni faqat ruxsat etilgan ro'yxatdan bo'lsin.
+- Har bir mahsulot va kiyim uchun "query" — Pinduoduo'da qidirish uchun aniq, qisqa XITOYCHA kalit so'z (rang + kiyim turi + stil) ber. Real mahsulot shu orqali topiladi.
 - Do'konlar: Trendyol, Uzum yoki SHEIN. Brendlar realistik (COS, Mango, Zara, Massimo Dutti, LC Waikiki va h.k.).
 - Iltimoslar (extras) hisobga olinsin: yopiqroq kiyim, qulaylik, brend muhimligi va h.k.
 Faqat berilgan JSON sxemasiga mos javob qaytar.`;
@@ -171,7 +185,7 @@ function imageBlockFromDataUrl(dataUrl) {
 }
 
 app.get("/api/config", (req, res) => {
-  res.json({ aiEnabled: HAS_KEY, model: HAS_KEY ? MODEL : null });
+  res.json({ aiEnabled: HAS_KEY, model: HAS_KEY ? MODEL : null, pddEnabled: pdd.enabled() });
 });
 
 app.post("/api/analyze", async (req, res) => {
@@ -200,7 +214,14 @@ app.post("/api/analyze", async (req, res) => {
     const textBlock = response.content.find((b) => b.type === "text");
     if (!textBlock) throw new Error("No text block in response");
     const data = JSON.parse(textBlock.text);
-    res.json({ source: "ai", ...data });
+
+    // Turn the suggestions into real Pinduoduo items (image/price/link) when
+    // 多多进宝 credentials are present; otherwise leave the AI data as-is.
+    if (pdd.enabled()) {
+      try { await pdd.enrich(data); } catch (e) { console.error("[analyze] pdd enrich:", e && e.message); }
+    }
+
+    res.json({ source: "ai", products_real: pdd.enabled(), ...data });
   } catch (err) {
     console.error("[analyze] falling back to mock:", err && err.message);
     res.json({ source: "mock", error: String(err && err.message) });
@@ -214,5 +235,7 @@ app.get("/favicon.ico", (req, res) => res.redirect(301, "/favicon.svg"));
 app.use(express.static(__dirname, { extensions: ["html"] }));
 
 app.listen(PORT, () => {
-  console.log(`Menga Mos ${HAS_KEY ? "(real AI: " + MODEL + ")" : "(mock — ANTHROPIC_API_KEY o'rnatilmagan)"} → http://localhost:${PORT}/`);
+  const ai = HAS_KEY ? "real AI: " + MODEL : "mock (ANTHROPIC_API_KEY yo'q)";
+  const shop = pdd.enabled() ? "Pinduoduo real rasmlar" : "Pinduoduo o'chiq (PDD_CLIENT_ID yo'q)";
+  console.log(`Menga Mos [${ai}] [${shop}] → http://localhost:${PORT}/`);
 });

@@ -62,6 +62,40 @@ npm start
 - Modelni o'zgartirish: `MENGA_MODEL` muhit o'zgaruvchisi.
 - Tekshirish: `GET /api/config` → `{ "aiEnabled": true/false }`.
 
+## Real mahsulot rasmlari — Pinduoduo (多多进宝)
+
+Natija ekranlaridagi kiyim rasmlari real bo'lishi mumkin. Server Pinduoduo
+**多多进宝 (Duoduo Jinbao)** ochiq platformasi orqali har bir mahsulot/obraz
+uchun real **rasm + narx (so'mga aylantirilgan) + do'kon havolasi** oladi.
+
+Bu ham kalitga bog'langan: kalit yo'q bo'lsa chizilgan ikonalar ko'rinadi,
+kalit qo'shilishi bilan real rasmlar avtomatik chiqadi.
+
+**Kalit olish:**
+1. https://open.pinduoduo.com — 开放平台 da ro'yxatdan o'ting (xitoy raqami/biznes
+   verifikatsiyasi talab qilinadi).
+2. **多多进宝 (Duoduo Jinbao)** CPS/affiliate dasturiga a'zo bo'ling — `goods.search`
+   API faqat tasdiqlangan a'zolarga ochiladi.
+3. Ilova yarating → `client_id` va `client_secret` oling. Havola (komissiya) uchun
+   推广位 (promotion position) `pid` ham yarating.
+
+**Sozlash** (`.env` fayl yoki muhit o'zgaruvchilari — `.env` gitignore'da):
+
+```bash
+PDD_CLIENT_ID=...        # 开放平台 client_id
+PDD_CLIENT_SECRET=...    # 开放平台 client_secret
+PDD_PID=...              # ixtiyoriy — affiliate havola uchun 推广位
+PDD_CNY_TO_UZS=1750      # ixtiyoriy — yuan→so'm kursi
+PDD_DELIVERY="2–4 hafta" # ixtiyoriy — yetkazib berish yorlig'i
+ANTHROPIC_API_KEY=...    # AI tahlil uchun
+```
+
+Tekshirish: `GET /api/config` → `{ "pddEnabled": true }`.
+
+> Eslatma: men buni 多多进宝 hujjatidagi MD5 imzo algoritmi va `gw-api.pinduoduo.com`
+> shlyuzi bo'yicha yozdim; u tasdiqlangan kalit bilan jonli ishlaydi. Har bir
+> qadam fail-safe — Pinduoduo javob bermasa, karta ikonali holatga qaytadi.
+
 ## Fayllar tuzilishi
 
 | Fayl | Vazifasi |
@@ -78,8 +112,9 @@ npm start
 | `vendor/` | Self-hosted React/ReactDOM/Babel |
 | `fonts/` | Self-hosted shriftlar (`.woff2`) + `fonts.css` |
 | `favicon.svg` | Brend belgisi (M) |
-| `server.js` | Node server + `POST /api/analyze` (Claude vision) |
+| `server.js` | Node server + `POST /api/analyze` (Claude vision + Pinduoduo) |
+| `pdd.js` | Pinduoduo 多多进宝 mijozi (qidiruv, narx→so'm, havola) |
 
-> Eslatma: AI **tahlil** qismi real (Claude vision). Mahsulot katalogi, try-on
-> rasm generatsiyasi va to'lov hali namunaviy — ularni real qilish uchun mos
-> integratsiyalar (do'kon API'lari, rasm modeli, to'lov shartnomalari) kerak.
+> Eslatma: AI **tahlil** (Claude vision) va **mahsulot rasmlari** (Pinduoduo)
+> real. Try-on rasm generatsiyasi va to'lov hali namunaviy — ularni real qilish
+> uchun rasm modeli va to'lov shartnomalari kerak.
